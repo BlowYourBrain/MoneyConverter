@@ -1,0 +1,32 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@android:color/black</item>
+        <item name="colorPrimaryDark">@android:color/white</item>
+        <item name="colorAccent">@android:color/black</item>
+    </style>
+
+
+    <style name="AppTheme.Button">
+        <item name="android:textAllCaps">true</item>
+        <item name="android:background">@color/yellow</item>
+    </style>
+
+    <style name="InputMoneyField" parent="Base.V7.Widget.AppCompat.AutoCompleteTextView">
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="OutputField">
+        <item name="android:textSize">14sp</item>
+        <item name="android:padding">8dp</item>
+    </style>
+
+    <style name="OutputField.Bold">
+        <item name="android:textStyle">bold</item>
+
+    </style>
+
+</resources>
