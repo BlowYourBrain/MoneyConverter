@@ -2,6 +2,8 @@ package com.example.e_vasiliev.moneyconverter;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -22,6 +24,8 @@ import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+import static com.example.e_vasiliev.moneyconverter.utils.Utils.getFromCache;
 
 public class MainActivity extends AppCompatActivity {
     private final String DEBUG_KEY = "debugkey";
@@ -157,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
                         if (mCurrencyModel != null && mCurrencyModel.getResults() != null) {
                             fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
                         }
+                        Utils.saveInCache(MainActivity.this, mCurrencyModel);
                     }
 
 
@@ -168,6 +173,10 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 // TODO: 12.09.18 взять данные из кэша
                 //получить даныне из кэша
+//                mCurrencyModel = getFromCache();
+                if (mCurrencyModel != null && mCurrencyModel.getResults() != null) {
+                    fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
+                }
             }
         } else if (mCurrencyModel.getResults() != null) {
             fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
@@ -176,15 +185,26 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void setupViews() {
-
-        View.OnClickListener listener = new View.OnClickListener() {
+        TextWatcher textWatcher = new TextWatcher() {
             @Override
-            public void onClick(View v) {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
                 setState(State.ON_DATA_CHANGE);
             }
+
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
         };
-        mViewFrom.setOnClickListener(listener);
-        mViewTo.setOnClickListener(listener);
+        mViewFrom.addTextChangedListener(textWatcher);
+        mViewTo.addTextChangedListener(textWatcher);
         mResultView.setText(mResultValue);
     }
 
