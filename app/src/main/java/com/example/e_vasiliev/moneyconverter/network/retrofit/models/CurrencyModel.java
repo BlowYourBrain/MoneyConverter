@@ -8,7 +8,7 @@ import java.util.Map;
 public class CurrencyModel {
 	@SerializedName("results")
 	@Expose
-	public Map<String, CurrencyMeta> results;
+	private Map<String, CurrencyMeta> results;
 
 
 	public Map<String, CurrencyMeta> getResults() {
