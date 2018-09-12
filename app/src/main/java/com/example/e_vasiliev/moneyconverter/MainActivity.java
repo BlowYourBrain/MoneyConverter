@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.TextView;
@@ -16,6 +17,7 @@ import com.example.e_vasiliev.moneyconverter.network.retrofit.models.CurrencyMod
 import com.example.e_vasiliev.moneyconverter.utils.Utils;
 
 import java.util.LinkedHashMap;
+import java.util.Set;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -65,10 +67,18 @@ public class MainActivity extends AppCompatActivity {
     private enum State {
         DEFAULT,
         IN_PROGRESS,
-        SHOULD_CLEAR
+        GET_ERROR,
+        SHOWING_RESULT,
     }
 
     private State mCurrentState = State.DEFAULT;
+
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable(CURRENT_STATE, mCurrentState);
+    }
 
 
     @Override
@@ -110,6 +120,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Получить данные о существующих валютах
+     */
+    private void setupData() {
+        if (mCurrencyModel == null) {
+            //проверить доступ в интернет
+            if (Utils.isOnline(this)) {
+                mCurrencyModelCall.enqueue(new Callback<CurrencyModel>() {
+                    @Override
+                    public void onResponse(Call<CurrencyModel> call, Response<CurrencyModel> response) {
+                        mCurrencyModel = response.body();
+                        if (mCurrencyModel != null && mCurrencyModel.getResults() != null) {
+                            fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
+                        }
+                    }
+
+
+                    @Override
+                    public void onFailure(Call<CurrencyModel> call, Throwable t) {
+                        t.fillInStackTrace();
+                    }
+                });
+
+
+            } else {
+                //получить даныне из кэша
+                Toast.makeText(this, "нет интернета, нужно взять данные из кэша", Toast.LENGTH_SHORT).show();
+            }
+        } else if (mCurrencyModel.getResults() != null) {
+            fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
+        }
+    }
+
+
     private void startConvertation() {
 
         if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
@@ -117,20 +161,24 @@ public class MainActivity extends AppCompatActivity {
 
             if (query != null) {
                 mConverterOutputCall = RetrofitBuilder.getCurrencyRequest().getConverter(query);
+                setState(State.IN_PROGRESS);
                 mConverterOutputCall.enqueue(new Callback<ConverterOutput>() {
                     @Override
                     public void onResponse(Call<ConverterOutput> call, Response<ConverterOutput> response) {
-
-
-                        Log.d(DEBUG_KEY, "response code: " + response.code());
                         ConverterOutput converterOutput = response.body();
+
+
                         if (converterOutput != null) {
                             LinkedHashMap<String, ConverterOutputMeta> output = converterOutput.getResults();
 
+
                             if (output.keySet().size() > 0) {
-                                ConverterOutputMeta a = (ConverterOutputMeta) output.values().toArray()[0];
+                                final int INDEX = 0;    //по этой позиции будут браться данные
+                                ConverterOutputMeta a = (ConverterOutputMeta) output.values().toArray()[INDEX];
                                 mResultView.setText(String.valueOf(a.getValue()));
-                                shouldShowResultViews(true);
+
+
+                                setState(State.SHOWING_RESULT);
 
                             } else {
                                 // TODO: 12.09.18 указать что пришёл некорректный ответ с сервера
@@ -144,8 +192,10 @@ public class MainActivity extends AppCompatActivity {
                         t.printStackTrace();
                     }
                 });
+
+
             } else {
-                // TODO: 12.09.18 указать пользователю на некрректность данных
+                // TODO: 12.09.18 указать пользователю на некорректность данных
                 Toast.makeText(this, "Некорректные данные", Toast.LENGTH_SHORT).show();
             }
         }
@@ -165,6 +215,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void shouldShowProgress(boolean shouldShow) {
+
+    }
+
+
     /**
      * @return - вернёт строку формата ID1_ID2 если поля в {@link #mViewFrom} и {@link #mViewTo}
      * не являются пустыми. Иначе null
@@ -179,33 +234,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void fillAutoCompleteDataIntoViews(Set<String> data) {
+        setupLoginAutoCompletion(mViewFrom, data);
+        setupLoginAutoCompletion(mViewTo, data);
+    }
+
+
+    private void setupLoginAutoCompletion(AutoCompleteTextView view, Set<String> data) {
+        //  минимальное количество символов которое пользователь должен ввести
+        //  прежде чем появится выпадающий список с подсказкой
+        final int MINIMUM_INPUT_CHARS_COUNT = 1;
+
+        if (data != null) {
+            String[] convertedData = data.toArray(new String[data.size()]);
+            ArrayAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, convertedData);
+            view.setAdapter(adapter);
+        }
+        view.setThreshold(MINIMUM_INPUT_CHARS_COUNT);
+    }
+
+
     /**
-     * Получить данные о существующих валютах
+     * Установить состояние элементов View
      */
-    private void setupData() {
-        if (mCurrencyModel == null) {
-            //проверить доступ в интернет
-            if (Utils.isOnline(this)) {
+    private void setState(State state) {
+        mCurrentState = state;
+        Log.d(DEBUG_KEY, "current state: " + state);
+        switch (state) {
+            case DEFAULT:
+                clearAll();
+                break;
 
+            case IN_PROGRESS:
+                inProgress();
+                break;
 
-                mCurrencyModelCall.enqueue(new Callback<CurrencyModel>() {
-                    @Override
-                    public void onResponse(Call<CurrencyModel> call, Response<CurrencyModel> response) {
-                        Log.d(DEBUG_KEY, "response code: " + response.code());
-                        mCurrencyModel = response.body();
-                    }
+            case GET_ERROR:
+                getError();
+                break;
 
-
-                    @Override
-                    public void onFailure(Call<CurrencyModel> call, Throwable t) {
-                        t.fillInStackTrace();
-                    }
-                });
-
-            } else {
-                //получить даныне из кэша
-                Toast.makeText(this, "нет интернета, нужно взять данные из кэша", Toast.LENGTH_SHORT).show();
-            }
+            case SHOWING_RESULT:
+                resultShow();
+                break;
         }
     }
 
@@ -216,6 +286,26 @@ public class MainActivity extends AppCompatActivity {
         mViewTo.setText("");
         shouldEnableViewsForInput(true);
         shouldShowResultViews(false);
+        shouldShowProgress(false);
+    }
+
+
+    private void inProgress() {
+        shouldEnableViewsForInput(false);
+        shouldShowProgress(true);
+    }
+
+
+    private void resultShow() {
+        shouldShowResultViews(true);
+        shouldEnableViewsForInput(true);
+        shouldShowProgress(false);
+    }
+
+
+    private void getError() {
+        shouldEnableViewsForInput(true);
+        shouldShowProgress(false);
     }
 
 }

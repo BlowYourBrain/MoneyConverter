@@ -31,7 +31,7 @@
             style="@style/InputMoneyField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/converft_from" />
+            android:hint="@string/convert_from" />
     </android.support.design.widget.TextInputLayout>
 
     <android.support.design.widget.TextInputLayout
@@ -50,7 +50,7 @@
             style="@style/InputMoneyField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/converft_to" />
+            android:hint="@string/convert_to" />
     </android.support.design.widget.TextInputLayout>
 
     <TextView
