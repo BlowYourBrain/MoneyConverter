@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.example.e_vasiliev.moneyconverter.network.retrofit.RetrofitBuilder;
@@ -47,6 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView mDataView;
 
     private Button mConvertButton;
+
+    private ProgressBar mProgressBar;
 
     private CurrencyModel mCurrencyModel;
 
@@ -96,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
         mResultView = findViewById(R.id.result);
         mDataView = findViewById(R.id.output_field);
         mConvertButton = findViewById(R.id.convert);
+        mProgressBar = findViewById(R.id.progressBar);
         mCurrencyModelCall = RetrofitBuilder.getCurrencyRequest().getCurrency();
 
         setupViews();
@@ -108,8 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (mCurrencyModelCall != null) mCurrencyModelCall.cancel();
-        if (mConverterOutputCall != null) mConverterOutputCall.cancel();
+//        if (mCurrencyModelCall != null) mCurrencyModelCall.cancel();
+//        if (mConverterOutputCall != null) mConverterOutputCall.cancel();
         super.onDestroy();
     }
 
@@ -252,8 +256,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
-
     private void fillAutoCompleteDataIntoViews(Set<String> data) {
         setupLoginAutoCompletion(mViewFrom, data);
         setupLoginAutoCompletion(mViewTo, data);
@@ -334,6 +336,7 @@ public class MainActivity extends AppCompatActivity {
         shouldShowResultViews(false);
         shouldShowProgress(false);
         mResultValue = null;
+        mProgressBar.setVisibility(View.GONE);
     }
 
 
@@ -341,6 +344,7 @@ public class MainActivity extends AppCompatActivity {
         shouldEnableViewsForInput(false);
         shouldShowProgress(true);
         mConvertButton.setText(null);
+        mProgressBar.setVisibility(View.VISIBLE);
     }
 
 
@@ -350,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
         mResultValue = mResultView.getText().toString();
+        mProgressBar.setVisibility(View.GONE);
     }
 
 
@@ -357,6 +362,7 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton.setText(R.string.convert);
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
+        mProgressBar.setVisibility(View.GONE);
     }
 
 
@@ -364,6 +370,7 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton.setText(R.string.convert);
         shouldShowResultViews(false);
         mResultValue = null;
+        mProgressBar.setVisibility(View.GONE);
     }
 
 }
