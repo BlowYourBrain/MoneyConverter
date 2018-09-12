@@ -1,14 +1,13 @@
 package com.example.e_vasiliev.moneyconverter;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.e_vasiliev.moneyconverter.network.retrofit.RetrofitBuilder;
 import com.example.e_vasiliev.moneyconverter.network.retrofit.models.ConverterOutput;
@@ -25,8 +24,8 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
     private final String DEBUG_KEY = "debugkey";
-
     private final String CURRENT_STATE = "currentstate";
+    private final String RESULT_VALUE = "resultvalue";
 
     /**
      * View в которую вводится информация, из какой валюты провести конвертацию
@@ -71,12 +70,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private State mCurrentState = State.DEFAULT;
+    private String mResultValue;
 
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putSerializable(CURRENT_STATE, mCurrentState);
+        outState.putString(RESULT_VALUE, mResultValue);
     }
 
 
@@ -87,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState != null) {
             mCurrentState = (State) savedInstanceState.getSerializable(CURRENT_STATE);
+            mResultValue = savedInstanceState.getString(RESULT_VALUE, null);
         }
 
         mViewFrom = findViewById(R.id.convert_from);
@@ -96,11 +98,11 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton = findViewById(R.id.convert);
         mCurrencyModelCall = RetrofitBuilder.getCurrencyRequest().getCurrency();
 
-        setState(true, mCurrentState);
-
+        setupViews();
         setupData();
         setupButton();
-        setupConvertViews();
+        setState(true, mCurrentState);
+
     }
 
 
@@ -140,6 +142,8 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setupData() {
         if (mCurrencyModel == null) {
+
+
             //проверить доступ в интернет
             if (Utils.isOnline(this)) {
                 mCurrencyModelCall.enqueue(new Callback<CurrencyModel>() {
@@ -157,11 +161,9 @@ public class MainActivity extends AppCompatActivity {
                         t.fillInStackTrace();
                     }
                 });
-
-
             } else {
+                // TODO: 12.09.18 взять данные из кэша
                 //получить даныне из кэша
-                Toast.makeText(this, "нет интернета, нужно взять данные из кэша", Toast.LENGTH_SHORT).show();
             }
         } else if (mCurrencyModel.getResults() != null) {
             fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
@@ -169,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void setupConvertViews() {
+    private void setupViews() {
 
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
@@ -179,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
         };
         mViewFrom.setOnClickListener(listener);
         mViewTo.setOnClickListener(listener);
+        mResultView.setText(mResultValue);
     }
 
 
@@ -209,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
                             } else {
                                 // TODO: 12.09.18 указать что пришёл некорректный ответ с сервера
                                 setState(State.GET_ERROR);
+                                Utils.toast(MainActivity.this, R.string.not_found);
                             }
                         }
                     }
@@ -218,13 +222,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onFailure(Call<ConverterOutput> call, Throwable t) {
                         t.printStackTrace();
                         setState(State.GET_ERROR);
+                        Utils.toast(MainActivity.this, R.string.unexpected_error);
                     }
                 });
 
 
             } else {
-                // TODO: 12.09.18 указать пользователю на некорректность данных
-                Toast.makeText(this, "Некорректные данные", Toast.LENGTH_SHORT).show();
+                Utils.toast(this, R.string.invalid_data);
             }
         }
     }
@@ -248,18 +252,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    /**
-     * @return - вернёт строку формата ID1_ID2 если поля в {@link #mViewFrom} и {@link #mViewTo}
-     * не являются пустыми. Иначе null
-     */
-    private String getConvertCurrency() {
-        String currencyFrom = mViewFrom.getText().toString().trim();
-        String currencyTo = mViewTo.getText().toString().trim();
-        if (!"".equals(currencyFrom) && !"".equals(currencyTo)) {
-            return currencyFrom + "_" + currencyTo;
-        }
-        return null;
-    }
 
 
     private void fillAutoCompleteDataIntoViews(Set<String> data) {
@@ -279,6 +271,20 @@ public class MainActivity extends AppCompatActivity {
             view.setAdapter(adapter);
         }
         view.setThreshold(MINIMUM_INPUT_CHARS_COUNT);
+    }
+
+
+    /**
+     * @return - вернёт строку формата ID1_ID2 если поля в {@link #mViewFrom} и {@link #mViewTo}
+     * не являются пустыми. Иначе null
+     */
+    private String getConvertCurrency() {
+        String currencyFrom = mViewFrom.getText().toString().trim();
+        String currencyTo = mViewTo.getText().toString().trim();
+        if (!"".equals(currencyFrom) && !"".equals(currencyTo)) {
+            return currencyFrom + "_" + currencyTo;
+        }
+        return null;
     }
 
 
@@ -327,6 +333,7 @@ public class MainActivity extends AppCompatActivity {
         shouldEnableViewsForInput(true);
         shouldShowResultViews(false);
         shouldShowProgress(false);
+        mResultValue = null;
     }
 
 
@@ -342,6 +349,7 @@ public class MainActivity extends AppCompatActivity {
         shouldShowResultViews(true);
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
+        mResultValue = mResultView.getText().toString();
     }
 
 
@@ -355,6 +363,7 @@ public class MainActivity extends AppCompatActivity {
     private void onDataChange() {
         mConvertButton.setText(R.string.convert);
         shouldShowResultViews(false);
+        mResultValue = null;
     }
 
 }
