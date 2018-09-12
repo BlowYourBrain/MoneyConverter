@@ -16,16 +16,15 @@ import com.example.e_vasiliev.moneyconverter.network.retrofit.models.CurrencyMod
 import com.example.e_vasiliev.moneyconverter.utils.Utils;
 
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.Callback;
-import retrofit2.Converter;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
     private final String DEBUG_KEY = "debugkey";
+
+    private final String CURRENT_STATE = "currentstate";
 
     /**
      * View в которую вводится информация, из какой валюты провести конвертацию
@@ -48,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button mConvertButton;
 
-    private CurrencyModel mAllCurrency;
+    private CurrencyModel mCurrencyModel;
 
     private ConverterOutput mConverterOutput;
 
@@ -63,10 +62,23 @@ public class MainActivity extends AppCompatActivity {
     private Call<ConverterOutput> mConverterOutputCall;
 
 
+    private enum State {
+        DEFAULT,
+        IN_PROGRESS,
+        SHOULD_CLEAR
+    }
+
+    private State mCurrentState = State.DEFAULT;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (savedInstanceState != null) {
+            mCurrentState = (State) savedInstanceState.getSerializable(CURRENT_STATE);
+        }
 
         mViewFrom = findViewById(R.id.convert_from);
         mViewTo = findViewById(R.id.convert_to);
@@ -77,6 +89,14 @@ public class MainActivity extends AppCompatActivity {
 
         setupData();
         setupButton();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        if (mCurrencyModelCall != null) mCurrencyModelCall.cancel();
+        if (mConverterOutputCall != null) mConverterOutputCall.cancel();
+        super.onDestroy();
     }
 
 
@@ -92,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startConvertation() {
 
-        if (mConverterOutputCall == null || !mConverterOutputCall.isExecuted()) {
+        if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
             String query = getConvertCurrency();
 
             if (query != null) {
@@ -100,9 +120,9 @@ public class MainActivity extends AppCompatActivity {
                 mConverterOutputCall.enqueue(new Callback<ConverterOutput>() {
                     @Override
                     public void onResponse(Call<ConverterOutput> call, Response<ConverterOutput> response) {
+
+
                         Log.d(DEBUG_KEY, "response code: " + response.code());
-
-
                         ConverterOutput converterOutput = response.body();
                         if (converterOutput != null) {
                             LinkedHashMap<String, ConverterOutputMeta> output = converterOutput.getResults();
@@ -110,8 +130,7 @@ public class MainActivity extends AppCompatActivity {
                             if (output.keySet().size() > 0) {
                                 ConverterOutputMeta a = (ConverterOutputMeta) output.values().toArray()[0];
                                 mResultView.setText(String.valueOf(a.getValue()));
-                                mResultView.setVisibility(View.VISIBLE);
-                                mDataView.setVisibility(View.VISIBLE);
+                                shouldShowResultViews(true);
 
                             } else {
                                 // TODO: 12.09.18 указать что пришёл некорректный ответ с сервера
@@ -122,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<ConverterOutput> call, Throwable t) {
-
+                        t.printStackTrace();
                     }
                 });
             } else {
@@ -136,7 +155,13 @@ public class MainActivity extends AppCompatActivity {
     private void shouldEnableViewsForInput(boolean shouldEnable) {
         mViewFrom.setEnabled(shouldEnable);
         mViewTo.setEnabled(shouldEnable);
+    }
 
+
+    private void shouldShowResultViews(boolean shouldShow) {
+        int flag = shouldShow ? View.VISIBLE : View.GONE;
+        mResultView.setVisibility(flag);
+        mDataView.setVisibility(flag);
     }
 
 
@@ -154,8 +179,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    /**
+     * Получить данные о существующих валютах
+     */
     private void setupData() {
-        if (mConverterOutput == null) {
+        if (mCurrencyModel == null) {
             //проверить доступ в интернет
             if (Utils.isOnline(this)) {
 
@@ -164,7 +192,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(Call<CurrencyModel> call, Response<CurrencyModel> response) {
                         Log.d(DEBUG_KEY, "response code: " + response.code());
-                        mAllCurrency = response.body();
+                        mCurrencyModel = response.body();
                     }
 
 
@@ -182,10 +210,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    @Override
-    protected void onDestroy() {
-        if (mCurrencyModelCall != null) mCurrencyModelCall.cancel();
-        if (mConverterOutputCall != null) mConverterOutputCall.cancel();
-        super.onDestroy();
+    private void clearAll() {
+        mConvertButton.setText(R.string.convert);
+        mViewFrom.setText("");
+        mViewTo.setText("");
+        shouldEnableViewsForInput(true);
+        shouldShowResultViews(false);
     }
+
 }
