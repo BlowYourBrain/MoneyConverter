@@ -4,4 +4,5 @@
     <string name="convert_to">Конвертировать в</string>
     <string name="convert">Конвертировать</string>
     <string name="result">Результат:</string>
+    <string name="reset">Сбросить</string>
 </resources>

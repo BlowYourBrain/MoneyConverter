@@ -51,8 +51,6 @@ public class MainActivity extends AppCompatActivity {
 
     private CurrencyModel mCurrencyModel;
 
-    private ConverterOutput mConverterOutput;
-
     /**
      * Запрос, позволяющий получить ответ {@link CurrencyModel}
      */
@@ -67,8 +65,9 @@ public class MainActivity extends AppCompatActivity {
     private enum State {
         DEFAULT,
         IN_PROGRESS,
-        GET_ERROR,
         SHOWING_RESULT,
+        GET_ERROR,
+        ON_DATA_CHANGE
     }
 
     private State mCurrentState = State.DEFAULT;
@@ -97,8 +96,11 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton = findViewById(R.id.convert);
         mCurrencyModelCall = RetrofitBuilder.getCurrencyRequest().getCurrency();
 
+        setState(true, mCurrentState);
+
         setupData();
         setupButton();
+        setupConvertViews();
     }
 
 
@@ -114,9 +116,22 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startConvertation();
+                buttonAction();
             }
         });
+    }
+
+
+    private void buttonAction() {
+        if (mCurrentState == State.SHOWING_RESULT) {
+            setState(State.DEFAULT);
+            return;
+        }
+
+        if (mCurrentState != State.IN_PROGRESS) {
+            startConvertation();
+            return;
+        }
     }
 
 
@@ -154,14 +169,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void setupConvertViews() {
+
+        View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setState(State.ON_DATA_CHANGE);
+            }
+        };
+        mViewFrom.setOnClickListener(listener);
+        mViewTo.setOnClickListener(listener);
+    }
+
+
     private void startConvertation() {
 
         if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
             String query = getConvertCurrency();
 
             if (query != null) {
-                mConverterOutputCall = RetrofitBuilder.getCurrencyRequest().getConverter(query);
                 setState(State.IN_PROGRESS);
+                mConverterOutputCall = RetrofitBuilder.getCurrencyRequest().getConverter(query);
                 mConverterOutputCall.enqueue(new Callback<ConverterOutput>() {
                     @Override
                     public void onResponse(Call<ConverterOutput> call, Response<ConverterOutput> response) {
@@ -176,12 +204,11 @@ public class MainActivity extends AppCompatActivity {
                                 final int INDEX = 0;    //по этой позиции будут браться данные
                                 ConverterOutputMeta a = (ConverterOutputMeta) output.values().toArray()[INDEX];
                                 mResultView.setText(String.valueOf(a.getValue()));
-
-
                                 setState(State.SHOWING_RESULT);
 
                             } else {
                                 // TODO: 12.09.18 указать что пришёл некорректный ответ с сервера
+                                setState(State.GET_ERROR);
                             }
                         }
                     }
@@ -190,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Call<ConverterOutput> call, Throwable t) {
                         t.printStackTrace();
+                        setState(State.GET_ERROR);
                     }
                 });
 
@@ -247,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (data != null) {
             String[] convertedData = data.toArray(new String[data.size()]);
-            ArrayAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, convertedData);
+            ArrayAdapter adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, convertedData);
             view.setAdapter(adapter);
         }
         view.setThreshold(MINIMUM_INPUT_CHARS_COUNT);
@@ -258,24 +286,36 @@ public class MainActivity extends AppCompatActivity {
      * Установить состояние элементов View
      */
     private void setState(State state) {
-        mCurrentState = state;
-        Log.d(DEBUG_KEY, "current state: " + state);
-        switch (state) {
-            case DEFAULT:
-                clearAll();
-                break;
+        setState(false, state);
+    }
 
-            case IN_PROGRESS:
-                inProgress();
-                break;
 
-            case GET_ERROR:
-                getError();
-                break;
+    private void setState(boolean manualRefresh, State state) {
+        if (mCurrentState != state || manualRefresh) {
 
-            case SHOWING_RESULT:
-                resultShow();
-                break;
+            mCurrentState = state;
+            Log.d(DEBUG_KEY, "current state: " + state);
+            switch (state) {
+                case DEFAULT:
+                    clearAll();
+                    break;
+
+                case IN_PROGRESS:
+                    inProgress();
+                    break;
+
+                case GET_ERROR:
+                    getError();
+                    break;
+
+                case SHOWING_RESULT:
+                    resultShow();
+                    break;
+
+                case ON_DATA_CHANGE:
+                    onDataChange();
+                    break;
+            }
         }
     }
 
@@ -293,10 +333,12 @@ public class MainActivity extends AppCompatActivity {
     private void inProgress() {
         shouldEnableViewsForInput(false);
         shouldShowProgress(true);
+        mConvertButton.setText(null);
     }
 
 
     private void resultShow() {
+        mConvertButton.setText(R.string.reset);
         shouldShowResultViews(true);
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
@@ -304,8 +346,15 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void getError() {
+        mConvertButton.setText(R.string.convert);
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
+    }
+
+
+    private void onDataChange() {
+        mConvertButton.setText(R.string.convert);
+        shouldShowResultViews(false);
     }
 
 }
