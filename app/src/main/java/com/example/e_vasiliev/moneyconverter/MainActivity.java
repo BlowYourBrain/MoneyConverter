@@ -152,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
      * Получить данные о существующих валютах
      */
     private void setupData() {
+        mCurrencyModel = Utils.getFromCache(this);
         if (mCurrencyModel == null) {
 
 
@@ -173,14 +174,9 @@ public class MainActivity extends AppCompatActivity {
                         t.fillInStackTrace();
                     }
                 });
-            } else {
-                // TODO: 12.09.18 взять данные из кэша
-                //получить даныне из кэша
-//                mCurrencyModel = getFromCache();
-                if (mCurrencyModel != null && mCurrencyModel.getResults() != null) {
-                    fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
-                }
             }
+
+
         } else if (mCurrencyModel.getResults() != null) {
             fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
         }
@@ -261,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
                                 setState(State.SHOWING_RESULT);
 
                             } else {
-                                // TODO: 12.09.18 указать что пришёл некорректный ответ с сервера
                                 setState(State.GET_ERROR);
                                 Utils.toast(MainActivity.this, R.string.not_found);
                             }

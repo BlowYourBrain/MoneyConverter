@@ -23,6 +23,7 @@ public final class Utils {
     private static final String filename = "currencies";
     private static final Pattern pattern = Pattern.compile("^([a-z]+)$", Pattern.CASE_INSENSITIVE);
 
+
     private Utils() {
     }
 
@@ -46,25 +47,33 @@ public final class Utils {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
     }
 
-    public static boolean checkText(CharSequence text){
-        if (pattern.matcher(text).find()){
-            Log.d("glibglob", "найдено совпадение");
+
+    public static boolean checkText(CharSequence text) {
+        if (pattern.matcher(text).find()) {
             return true;
-        }else {
-            Log.d("glibglob", "совпадение не найдено");
         }
         return false;
     }
 
 
     public static CurrencyModel getFromCache(Context context) {
+        byte[] buffer = null;
+        Log.d("fuck", "пробуем взять данные из кэша");
         try {
             FileInputStream inputStream = context.openFileInput(filename);
-
-            inputStream.read();
+            buffer = new byte[inputStream.available()];
+            inputStream.read(buffer, 0, buffer.length);
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        if (buffer != null) {
+            String json = new String(buffer);
+            Log.d("fuck", json);
+            Gson gson = new Gson();
+            return gson.fromJson(json, CurrencyModel.class);
+        }
+
         return null;
     }
 
