@@ -1,11 +1,12 @@
 package com.example.e_vasiliev.moneyconverter;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
-import android.text.Spanned;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
@@ -19,11 +20,13 @@ import com.example.e_vasiliev.moneyconverter.network.retrofit.RetrofitBuilder;
 import com.example.e_vasiliev.moneyconverter.network.retrofit.models.ConverterOutput;
 import com.example.e_vasiliev.moneyconverter.network.retrofit.models.ConverterOutputMeta;
 import com.example.e_vasiliev.moneyconverter.network.retrofit.models.CurrencyModel;
+import com.example.e_vasiliev.moneyconverter.utils.CurrencyInputFilter;
 import com.example.e_vasiliev.moneyconverter.utils.Utils;
 
 import java.util.LinkedHashMap;
 import java.util.Set;
 
+import okhttp3.internal.Util;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -36,38 +39,34 @@ public class MainActivity extends AppCompatActivity {
      * View в которую вводится информация, из какой валюты провести конвертацию
      */
     private AutoCompleteTextView mViewFrom;
-
     /**
      * View в которую вводится информация, в какую валюту провести конвертацию
      */
     private AutoCompleteTextView mViewTo;
+
+    private TextInputLayout mTextInputViewFrom;
+    private TextInputLayout mTextInputViewTo;
     /**
      * View в которой выводится результат конвертации
      */
     private TextView mResultView;
-
     /**
      * View с константной информацией
      */
     private TextView mDataView;
-
     private Button mConvertButton;
-
     private ProgressBar mProgressBar;
-
     private CurrencyModel mCurrencyModel;
-
     /**
      * Запрос, позволяющий получить ответ {@link CurrencyModel}
      */
     private Call<CurrencyModel> mCurrencyModelCall;
-
     /**
      * Запрос, позволяющий получить ответ {@link ConverterOutput}
      */
     private Call<ConverterOutput> mConverterOutputCall;
-
     private CoordinatorLayout mCoordinatorLayout;
+    private Handler mHandler;
 
     private enum State {
         DEFAULT,
@@ -98,8 +97,10 @@ public class MainActivity extends AppCompatActivity {
             mCurrentState = (State) savedInstanceState.getSerializable(CURRENT_STATE);
             mResultValue = savedInstanceState.getString(RESULT_VALUE, null);
         }
-
+        mHandler = new Handler();
         mCoordinatorLayout = findViewById(R.id.coordinator);
+        mTextInputViewFrom = findViewById(R.id.textInputConvertFrom);
+        mTextInputViewTo = findViewById(R.id.textInputConvertTo);
         mViewFrom = findViewById(R.id.convert_from);
         mViewTo = findViewById(R.id.convert_to);
         mResultView = findViewById(R.id.result);
@@ -126,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void buttonAction() {
+        Utils.hideKeyboard(this);
         if (mCurrentState == State.SHOWING_RESULT) {
             setState(State.DEFAULT);
             return;
@@ -194,36 +196,19 @@ public class MainActivity extends AppCompatActivity {
         mViewFrom.addTextChangedListener(textWatcher);
         mViewTo.addTextChangedListener(textWatcher);
 
+        String errorMessage = getString(R.string.incorrect_input);
+        CurrencyInputFilter filterFrom = new CurrencyInputFilter(mTextInputViewFrom, errorMessage, mHandler);
+        CurrencyInputFilter filterTo = new CurrencyInputFilter(mTextInputViewTo, errorMessage, mHandler);
 
-        final byte MAX_LENGTH = 3;
-        //фильтр для ввода текста
-        InputFilter inputFilter = new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                if ((end > dend) && Utils.checkText(source)) {
-                    if (source.length() > MAX_LENGTH) {
-                        return source.subSequence(0, MAX_LENGTH);
-                    }
-                    return null;
-                }
-
-                if (source.length() != 0 && end > dend)
-                    Utils.toast(MainActivity.this, R.string.incorrect_input);
-
-                return source.subSequence(start, end > dend ? dend : end);
-            }
-        };
-        InputFilter[] filter = new InputFilter[]{inputFilter};
+        InputFilter[] filter = new InputFilter[]{filterFrom};
         mViewFrom.setFilters(filter);
+        filter = new InputFilter[]{filterTo};
         mViewTo.setFilters(filter);
-
-
         mResultView.setText(mResultValue);
     }
 
 
     private void startConvertation() {
-
         if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
             String query = getConvertCurrency();
 
@@ -248,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
 
                             } else {
                                 setState(State.GET_ERROR);
-                                Utils.toast(MainActivity.this, R.string.not_found);
+                                Utils.showMessage(mCoordinatorLayout, R.string.not_found);
                             }
                         }
                     }
@@ -258,13 +243,13 @@ public class MainActivity extends AppCompatActivity {
                     public void onFailure(Call<ConverterOutput> call, Throwable t) {
                         t.printStackTrace();
                         setState(State.GET_ERROR);
-                        Utils.toast(MainActivity.this, R.string.unexpected_error);
+                        Utils.showMessage(mCoordinatorLayout, R.string.unexpected_error);
                     }
                 });
 
 
             } else {
-                Utils.toast(this, R.string.invalid_data);
+                Utils.showMessage(mCoordinatorLayout, R.string.invalid_data);
             }
         }
     }

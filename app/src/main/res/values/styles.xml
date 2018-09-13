@@ -23,12 +23,21 @@
         <item name="android:imeOptions">flagNoExtractUi</item>
     </style>
 
-    <style name="OutputField">
+    <style name="AppTheme.InputWrapper">
+        <item name="errorEnabled">true</item>
+        <item name="errorTextAppearance">@style/ErrorText</item>
+    </style>
+
+    <style name="ErrorText" parent="TextAppearance.AppCompat.Small">
+        <item name="android:textColor">@android:color/holo_red_dark</item>
+    </style>
+
+    <style name="AppTheme.OutputField">
         <item name="android:textSize">14sp</item>
         <item name="android:padding">8dp</item>
     </style>
 
-    <style name="OutputField.Bold">
+    <style name="AppTheme.OutputField.Bold">
         <item name="android:textStyle">bold</item>
     </style>
 

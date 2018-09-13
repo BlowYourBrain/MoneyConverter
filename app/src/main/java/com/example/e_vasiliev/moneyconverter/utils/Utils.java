@@ -1,11 +1,15 @@
 package com.example.e_vasiliev.moneyconverter.utils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.annotation.StringRes;
+import android.support.design.widget.Snackbar;
 import android.util.Log;
+import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
 
 import com.example.e_vasiliev.moneyconverter.network.retrofit.models.CurrencyModel;
@@ -38,15 +42,22 @@ public final class Utils {
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
-
     /**
-     * @param context - {@link Context}
+     * @param layout  - view, в которой будет расположен snackbar. Предпочтительнее {@link android.support.design.widget.CoordinatorLayout}
      * @param message - строковая контстанта, которая будет отображена в сообщении
      */
-    public static void toast(Context context, @StringRes int message) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+    public static void showMessage(View layout, @StringRes int message) {
+        Snackbar.make(layout, message, Snackbar.LENGTH_SHORT).show();
     }
 
+
+    public static void hideKeyboard(Activity activity){
+        InputMethodManager inputManager = (InputMethodManager)
+                activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+
+        inputManager.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(),
+                InputMethodManager.HIDE_NOT_ALWAYS);
+    }
 
     public static boolean checkText(CharSequence text) {
         if (pattern.matcher(text).find()) {
