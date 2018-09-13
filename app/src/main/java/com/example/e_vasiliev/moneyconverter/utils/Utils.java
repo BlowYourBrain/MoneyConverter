@@ -17,10 +17,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.regex.Pattern;
 
 public final class Utils {
     private static final String filename = "currencies";
-
+    private static final Pattern pattern = Pattern.compile("^([a-z]+)$", Pattern.CASE_INSENSITIVE);
 
     private Utils() {
     }
@@ -45,6 +46,16 @@ public final class Utils {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
     }
 
+    public static boolean checkText(CharSequence text){
+        if (pattern.matcher(text).find()){
+            Log.d("glibglob", "найдено совпадение");
+            return true;
+        }else {
+            Log.d("glibglob", "совпадение не найдено");
+        }
+        return false;
+    }
+
 
     public static CurrencyModel getFromCache(Context context) {
         try {
@@ -63,8 +74,6 @@ public final class Utils {
         Gson gson = new Gson();
         String json = gson.toJson(currencyModels);
         Log.d("fuck", json);
-
-
         File file = new File(context.getCacheDir(), filename);
         if (file.exists()) {
             Log.d("fuck", "файл существует");

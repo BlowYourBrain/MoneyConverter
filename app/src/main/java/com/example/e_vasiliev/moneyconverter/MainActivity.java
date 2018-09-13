@@ -1,8 +1,11 @@
 package com.example.e_vasiliev.moneyconverter;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
+import android.text.InputFilter;
+import android.text.Spanned;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
@@ -21,6 +24,7 @@ import com.example.e_vasiliev.moneyconverter.utils.Utils;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
+import okhttp3.internal.Util;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -31,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
     private final String DEBUG_KEY = "debugkey";
     private final String CURRENT_STATE = "currentstate";
     private final String RESULT_VALUE = "resultvalue";
-
     /**
      * View в которую вводится информация, из какой валюты провести конвертацию
      */
@@ -188,7 +191,6 @@ public class MainActivity extends AppCompatActivity {
         TextWatcher textWatcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
             }
 
 
@@ -205,6 +207,31 @@ public class MainActivity extends AppCompatActivity {
         };
         mViewFrom.addTextChangedListener(textWatcher);
         mViewTo.addTextChangedListener(textWatcher);
+
+
+        final byte MAX_LENGTH = 3;
+        //фильтр для ввода текста
+        InputFilter inputFilter = new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                if ((end > dend) && Utils.checkText(source)) {
+                    if (source.length() > MAX_LENGTH) {
+                        return source.subSequence(0, MAX_LENGTH);
+                    }
+                    return null;
+                }
+
+                if (source.length() != 0 && end > dend)
+                    Utils.toast(MainActivity.this, R.string.incorrect_input);
+
+                return source.subSequence(start, end > dend ? dend : end);
+            }
+        };
+        InputFilter[] filter = new InputFilter[]{inputFilter};
+        mViewFrom.setFilters(filter);
+        mViewTo.setFilters(filter);
+
+
         mResultView.setText(mResultValue);
     }
 
@@ -272,7 +299,11 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void shouldShowProgress(boolean shouldShow) {
-
+        if (shouldShow) {
+            mProgressBar.setVisibility(View.VISIBLE);
+        } else {
+            mProgressBar.setVisibility(View.GONE);
+        }
     }
 
 
@@ -356,7 +387,6 @@ public class MainActivity extends AppCompatActivity {
         shouldShowResultViews(false);
         shouldShowProgress(false);
         mResultValue = null;
-        mProgressBar.setVisibility(View.GONE);
     }
 
 
@@ -364,7 +394,6 @@ public class MainActivity extends AppCompatActivity {
         shouldEnableViewsForInput(false);
         shouldShowProgress(true);
         mConvertButton.setText(null);
-        mProgressBar.setVisibility(View.VISIBLE);
     }
 
 
@@ -374,7 +403,6 @@ public class MainActivity extends AppCompatActivity {
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
         mResultValue = mResultView.getText().toString();
-        mProgressBar.setVisibility(View.GONE);
     }
 
 
@@ -382,15 +410,14 @@ public class MainActivity extends AppCompatActivity {
         mConvertButton.setText(R.string.convert);
         shouldEnableViewsForInput(true);
         shouldShowProgress(false);
-        mProgressBar.setVisibility(View.GONE);
     }
 
 
     private void onDataChange() {
         mConvertButton.setText(R.string.convert);
         shouldShowResultViews(false);
+        shouldShowProgress(false);
         mResultValue = null;
-        mProgressBar.setVisibility(View.GONE);
     }
 
 }

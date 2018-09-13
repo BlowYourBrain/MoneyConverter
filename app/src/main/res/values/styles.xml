@@ -18,7 +18,6 @@
 
     <style name="InputMoneyField" parent="Base.V7.Widget.AppCompat.AutoCompleteTextView">
         <item name="android:inputType">textCapCharacters|text|textNoSuggestions</item>
-        <item name="android:maxLength">3</item>
         <item name="android:textSize">16sp</item>
         <item name="android:imeOptions">flagNoExtractUi</item>
     </style>
