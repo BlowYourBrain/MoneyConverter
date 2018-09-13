@@ -1,7 +1,7 @@
 package com.example.e_vasiliev.moneyconverter;
 
-import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -24,12 +24,9 @@ import com.example.e_vasiliev.moneyconverter.utils.Utils;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
-import okhttp3.internal.Util;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-
-import static com.example.e_vasiliev.moneyconverter.utils.Utils.getFromCache;
 
 public class MainActivity extends AppCompatActivity {
     private final String DEBUG_KEY = "debugkey";
@@ -70,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private Call<ConverterOutput> mConverterOutputCall;
 
+    private CoordinatorLayout mCoordinatorLayout;
 
     private enum State {
         DEFAULT,
@@ -101,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
             mResultValue = savedInstanceState.getString(RESULT_VALUE, null);
         }
 
+        mCoordinatorLayout = findViewById(R.id.coordinator);
         mViewFrom = findViewById(R.id.convert_from);
         mViewTo = findViewById(R.id.convert_to);
         mResultView = findViewById(R.id.result);
@@ -113,15 +112,6 @@ public class MainActivity extends AppCompatActivity {
         setupData();
         setupButton();
         setState(true, mCurrentState);
-
-    }
-
-
-    @Override
-    protected void onDestroy() {
-//        if (mCurrencyModelCall != null) mCurrencyModelCall.cancel();
-//        if (mConverterOutputCall != null) mConverterOutputCall.cancel();
-        super.onDestroy();
     }
 
 

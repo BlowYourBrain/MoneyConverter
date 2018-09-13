@@ -58,7 +58,6 @@ public final class Utils {
 
     public static CurrencyModel getFromCache(Context context) {
         byte[] buffer = null;
-        Log.d("fuck", "пробуем взять данные из кэша");
         try {
             FileInputStream inputStream = context.openFileInput(filename);
             buffer = new byte[inputStream.available()];
@@ -69,7 +68,6 @@ public final class Utils {
 
         if (buffer != null) {
             String json = new String(buffer);
-            Log.d("fuck", json);
             Gson gson = new Gson();
             return gson.fromJson(json, CurrencyModel.class);
         }
@@ -82,13 +80,10 @@ public final class Utils {
 
         Gson gson = new Gson();
         String json = gson.toJson(currencyModels);
-        Log.d("fuck", json);
         File file = new File(context.getCacheDir(), filename);
         if (file.exists()) {
-            Log.d("fuck", "файл существует");
             deleteFile(file);
         } else {
-            Log.d("fuck", "файл не существует");
         }
 
         createFile(context, filename);
@@ -97,7 +92,6 @@ public final class Utils {
 
 
     private static File createFile(Context context, String filename) {
-        Log.d("fuck", "создаём файл");
         File file = null;
         try {
             file = File.createTempFile(filename, null, context.getCacheDir());
@@ -109,7 +103,6 @@ public final class Utils {
 
 
     private static void writeInFile(Context context, String filename, String data) {
-        Log.d("fuck", "пишем в файл");
         try {
             OutputStream outputStream = context.openFileOutput(filename, Context.MODE_PRIVATE);
             outputStream.write(data.getBytes());
@@ -123,6 +116,5 @@ public final class Utils {
 
     private static void deleteFile(File file) {
         file.delete();
-        Log.d("fuck", "успешно удалил файл");
     }
 }
