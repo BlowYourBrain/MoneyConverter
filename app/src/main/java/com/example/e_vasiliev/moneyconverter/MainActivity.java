@@ -2,9 +2,11 @@ package com.example.e_vasiliev.moneyconverter;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.StandaloneActionMode;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
@@ -26,7 +28,6 @@ import com.example.e_vasiliev.moneyconverter.utils.Utils;
 import java.util.LinkedHashMap;
 import java.util.Set;
 
-import okhttp3.internal.Util;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -144,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
      * Получить данные о существующих валютах
      */
     private void setupData() {
-        mCurrencyModel = Utils.getFromCache(this);
+        mCurrencyModel = Utils.getCurrencyFromCache(this);
         if (mCurrencyModel == null) {
 
 
@@ -157,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
                         if (mCurrencyModel != null && mCurrencyModel.getResults() != null) {
                             fillAutoCompleteDataIntoViews(mCurrencyModel.getResults().keySet());
                         }
-                        Utils.saveInCache(MainActivity.this, mCurrencyModel);
+                        Utils.saveCurrencyInCache(MainActivity.this, mCurrencyModel);
                     }
 
 
@@ -209,32 +210,29 @@ public class MainActivity extends AppCompatActivity {
 
 
     private void startConvertation() {
-        if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
-            String query = getConvertCurrency();
+        final String query = getConvertCurrency();
 
-            if (query != null) {
-                setState(State.IN_PROGRESS);
+
+        if (query != null) {
+            setState(State.IN_PROGRESS);
+        } else {
+            Utils.showMessage(mCoordinatorLayout, R.string.invalid_data);
+            return;
+        }
+
+        if (Utils.isOnline(this)) {
+            if (mConverterOutputCall == null || mConverterOutputCall.isExecuted()) {
                 mConverterOutputCall = RetrofitBuilder.getCurrencyRequest().getConverter(query);
                 mConverterOutputCall.enqueue(new Callback<ConverterOutput>() {
                     @Override
                     public void onResponse(Call<ConverterOutput> call, Response<ConverterOutput> response) {
                         ConverterOutput converterOutput = response.body();
-
-
-                        if (converterOutput != null) {
-                            LinkedHashMap<String, ConverterOutputMeta> output = converterOutput.getResults();
-
-
-                            if (output.keySet().size() > 0) {
-                                final int INDEX = 0;    //по этой позиции будут браться данные
-                                ConverterOutputMeta a = (ConverterOutputMeta) output.values().toArray()[INDEX];
-                                mResultView.setText(String.valueOf(a.getValue()));
-                                setState(State.SHOWING_RESULT);
-
-                            } else {
-                                setState(State.GET_ERROR);
-                                Utils.showMessage(mCoordinatorLayout, R.string.not_found);
-                            }
+                        if (converterOutput != null && fillResults(converterOutput, query)) {
+                            Utils.saveConverterOutput(MainActivity.this, converterOutput, query);
+                            setState(State.SHOWING_RESULT);
+                        } else {
+                            setState(State.GET_ERROR);
+                            Utils.showMessage(mCoordinatorLayout, R.string.not_found);
                         }
                     }
 
@@ -246,12 +244,60 @@ public class MainActivity extends AppCompatActivity {
                         Utils.showMessage(mCoordinatorLayout, R.string.unexpected_error);
                     }
                 });
-
-
-            } else {
-                Utils.showMessage(mCoordinatorLayout, R.string.invalid_data);
             }
+        } else {
+            ConverterOutput converterOutput = Utils.getConverterOutputFromCache(this, query);
+
+            if (converterOutput == null) {
+                setState(State.ON_DATA_CHANGE);
+                Utils.showMessage(mCoordinatorLayout, R.string.no_internet);
+            } else {
+                fillResults(converterOutput, query);
+                setState(State.SHOWING_RESULT);
+                Utils.showMessage(mCoordinatorLayout, R.string.cached_data);
+            }
+
         }
+
+
+    }
+
+
+    /**
+     * @param converterOutput - данные, которые получены с сервера / взяты из кэша
+     * @param query           - строка формата ID1_ID2, где ID1 - это id валюты из которой происходит конвертация,
+     *                        а ID2 - id валюты в которую следует конвертировать данные
+     * @return true - в том случае, если все прошло успешно и данные установлены во view элементы
+     * false - если произошла ошибка
+     */
+    private boolean fillResults(ConverterOutput converterOutput, String query) {
+        if (converterOutput.getDatetime() != null)
+            Log.d("converter", "показать время: " + converterOutput.getDatetime().toString());
+
+        try {
+            float value = converterOutput.getResults().get(query).getValue();
+            mResultView.setText(String.valueOf(value));
+            Log.d("converter", "query " + query + " is: " + value);
+            return true;
+
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
+    /**
+     * @return - вернёт строку формата ID1_ID2 если поля {@link #mViewFrom} и {@link #mViewTo}
+     * не являются пустыми. Иначе null
+     */
+    private String getConvertCurrency() {
+        String currencyFrom = mViewFrom.getText().toString().trim();
+        String currencyTo = mViewTo.getText().toString().trim();
+        if (!"".equals(currencyFrom) && !"".equals(currencyTo)) {
+            return currencyFrom + "_" + currencyTo;
+        }
+        return null;
     }
 
 
@@ -294,20 +340,6 @@ public class MainActivity extends AppCompatActivity {
             view.setAdapter(adapter);
         }
         view.setThreshold(MINIMUM_INPUT_CHARS_COUNT);
-    }
-
-
-    /**
-     * @return - вернёт строку формата ID1_ID2 если поля в {@link #mViewFrom} и {@link #mViewTo}
-     * не являются пустыми. Иначе null
-     */
-    private String getConvertCurrency() {
-        String currencyFrom = mViewFrom.getText().toString().trim();
-        String currencyTo = mViewTo.getText().toString().trim();
-        if (!"".equals(currencyFrom) && !"".equals(currencyTo)) {
-            return currencyFrom + "_" + currencyTo;
-        }
-        return null;
     }
 
 
@@ -386,6 +418,7 @@ public class MainActivity extends AppCompatActivity {
     private void onDataChange() {
         mConvertButton.setText(R.string.convert);
         shouldShowResultViews(false);
+        shouldEnableViewsForInput(true);
         shouldShowProgress(false);
         mResultValue = null;
     }

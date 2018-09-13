@@ -8,6 +8,7 @@
 
     <!--Errors-->
     <string name="no_internet">Для работы требуется интернет-соединение</string>
+    <string name="cached_data">Не удалось получить доступ к интернету. Данные взяты из кэша</string>
     <string name="invalid_data">Некорректное значение в одном из полей</string>
     <string name="not_found">Конвертируемые валюты не были найдены</string>
     <string name="incorrect_input">Для ввода разрешены только латинские буквы без пробела.</string>
